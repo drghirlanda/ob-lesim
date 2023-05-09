@@ -1,0 +1,31 @@
+#+begin_src elisp :result none
+  (add-to-list 'org-babel-load-languages '(lesim .t))
+#+end_src
+
+#+name: common-parameters
+#+begin_src lesim
+  n_subjects        = 10
+  mechanism         = sr
+  behaviors         = response, no_response
+  stimulus_elements = background, stimulus, reward
+  start_v           = 0
+  start_w           = 0
+  alpha_v           = 0.1
+  u                 = reward:10, default:0
+#+end_src
+
+#+begin_src lesim
+  <<common-parameters>>
+
+  @phase training stop: stimulus==10
+  START_TRIAL  stimulus   | response: REWARD(.5) | NO_REWARD
+  REWARD       reward     | START_TRIAL
+  NO_REWARD    background | START_TRIAL
+
+  @run training
+
+  @figure v(stimulus->response)
+  @subplot 111 {'xlabel':'exposures to stimulus', 'ylabel':'v-value'}
+  @vplot stimulus->response
+#+end_src
+
