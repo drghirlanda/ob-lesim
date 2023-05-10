@@ -1,84 +1,104 @@
-#+title: Ob-Lesim: Learning Simulator integration for Org-Mode
+#+title: Ob-lesim: Learning Simulator integration for Org-Mode
 #+author: Stefano Ghirlanda
 #+options: toc:nil ':t
+#+latex_header: \usepackage[margin=1in]{geometry}
 
 * Introduction
 
-Ob-Lesim supports editing and running Learning Simulator scripts in
-Org-Mode.
+Ob-lesim supports editing and running [[https://learningsimulator.org][Learning Simulator]] scripts in
+Emacs org-mode. In short, it is a bridge between org-babel (org-mode's
+code execution system) and [[https://github.com/drghirlanda/lesim-mode][lesim-mode]], an Emacs major mode for
+Learning Simulator scripts.
 
-* Installation
+* Installing
 
-Install Lesim-Mode first. 
+1. Install [[https://github.com/drghirlanda/lesim-mode][lesim-mode]].
+2. Put ~ob-lesim.el~ in your Emacs load path, for example, ~~./emacs.d/elisp~.
+3. Add this to your Emacs init file, for example, ~~./emacs.d/init.el~:
+   #+begin_src elisp :eval no
+     (require 'ob-lesim)
+     (add-to-list 'org-babel-load-languages '(lesim . t))
+   #+end_src
 
-* Configuration
+* Using
 
-To enable Ob-Lesim in org-mode, add ~(require 'ob-lesim)~ to
-your Emacs init file.
+Ob-lesim works mostly behind the scenes. Editing lesim code blocks
+in org-mode should feel familiar:
+- Embed Learning Simulator code in org-mode buffers with:
+   #+begin_src org :eval no
+     ,#+begin_src lesim
+     ...
+     ,#+end_src
+   #+end_src
+- Ob-lesim defines these default header arguments:
+  - ~:results silent~, because Learning Simulator does not directly
+    output that makes sense to insert.[fn:figures]
+  - ~:noweb yes~, see [[Sharing code across scripts]].
+  - Other header arguments have no effect unless handled directly by
+    org-mode. For example:
+    - Use ~:eval no-export~ to prevent evaluation of long-running
+      scripts when exporting.
+    - Use ~:tangle file.les~ to write a script to ~file.les~.
+- Scripts can be run as code blocks in the org-mode buffer with the
+  usual ~C-c C-c~ key binding.
+- Scripts can also be run from the edit buffer, which has major mode
+  ~lesim-mode~, with the regular lesim-mode key binding (by default,
+  ~C-c C-r~).
+- Lesim-mode features are partly available in the org-mode buffer (for
+  example, ~TAB~ moves by field in phase blocks), and fully available
+  in org-mode edit buffers.
 
-* Learning Simulator
+[fn:figures]  This will change when Learning Simulator supports
+saving figures without human intervention.
 
-You can learn about the Learning Simulator from these sources:
-- [[https://learningsimulator.org][The Learning Simulator Website]]
-- [[https://learningsimulator.readthedocs.io][Learning Simulator documentation on Read The Docs]]
-- [[https://joss.theoj.org/papers/10.21105/joss.02891][Short article in the Journal of Open Source Software]]  
+* Sharing code across scripts
+
+Ob-lesim supports noweb references to share code across lesim code
+blocks. For example, this is how you can make sure that two different
+scripts use the same parameter values:
+
+#+begin_src org :eval no
+  This is a lesim parameter block:
+  ,#+name: common-parameters:
+  ,#+begin_src lesim
+    # lesim parameter block here
+  ,#+end_src
+
+  This is the script 1:
+  ,#+begin_src lesim
+    <<common-parameters>>
+
+    # script 1 here here
+  ,#+end_src
+
+  Ths is script 2:
+  ,#+begin_src lesim
+    <<common-parameters>>
+
+    # script 2 here here
+  ,#+end_src
+#+end_src
+
+You can also share phase blocks and other script snippets if
+useful. Thanks to awesome engineering, noweb references are
+automatically resolved when tangling, so that you end up with complete
+scripts.
 
 * Bugs and planned features
 
 Bugs and planned features are tracked as [[https://github.com/drghirlanda/ob-lesim/issues][issues on Github]].
 
-- When opening code block in a source edit buffer, point is not
-  preserved if the code block contains noweb references. The reason is
-  that references are expanded in ~ob-lesim-hook~ which is added to
-  ~org-src-mode-hook~, but ~org-src-edit~ reposition the point /after/
-  activating ~org-src-mode~ in the edit buffer. So ~ob-lesim-hook~
-  cannot position point correctly.
-
-- TAB in a lesim code block expands noweb references. Possibly because
-  lesim-mode implements TAB by redefining the global indent
-  function. 
-
 * Internals
 
-These are mostly notes to myself. Ob-Lesim has two ways of running
+These are mostly notes to myself. Ob-lesim has two ways of running
 scripts:
 
-1. Evaluate a code block in an org buffer. This works by:
-   1. Saving full-body to temporary file
-   2. Using lesim-run on the file
-   3. Error is highlighting by matching the error line number in the
-      code block and calculating an appropriate line number to pass to
-      ~lesim-error~. This works with two identical script lines with
-      the same error (could happen with cut-and-paste), because
-      Learning Simulator stops at the first error.
+1. Evaluate a code block in an org-mode buffer. This works by saving
+   ~full-body~ to temporary file, expanding any noweb references, then
+   using lesim-error and lesim-run on the file.
 
-2. Evaluate an org-src edit buffer with 'C-c r' (the lesim-mode
-   keybinding). This works by:
-
-   1. Expanding any noweb references with
-      ~ob-lesim--expand-noweb~. This is done when creating the edit
-      buffer so that error lines are matched easily and the user can
-      see
-   2. Saving temporary file How to support noweb references? This is necessary for:
-      1. Getting a complete file to feed to lesim
-      2. Resolve error line numbers correctly
-      3. Validating the buffer with lesim-mode 
-
-Now, things can be added to org source code buffers by using
-org-src-mode-hook but it looks like this runs in the new buffer
-without direct knowledge of the original org buffer. However, looking
-at org-src and ob-core functions has hints on how to get information
-from the original buffer, which could be used to expand noweb
-references and insert them as read-only text in the source edit
-buffer:
-
-- org-babel-get-src-block-info returns a list of: language, code, list
-  of code parameters.
-- (org-src-do-at-code-block body) runs BODY in the original org buffer.
-- one could use org-babel-expand-noweb-references but this would not
-  let us mark the expansions, so we are going to emulate that function
-  in our own words.
-
-Later, one could support automatically inserting links to figure
-files. Figures can be ~named~ consecutively if more than one.
+2. Evaluate an org-src edit buffer with ~C-c C-r~
+   (~lesim-mode-run-key~). This works by expanding noweb references,
+   then saving the buffer to a temporary file, using lesim-error and
+   lesim-run, then collapsing the noweb references again.
 

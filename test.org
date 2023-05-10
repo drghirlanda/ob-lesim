@@ -1,5 +1,5 @@
 #+begin_src elisp :result none
-  (add-to-list 'org-babel-load-languages '(lesim .t))
+  (add-to-list 'org-babel-load-languages '(lesim . t))
 #+end_src
 
 #+name: common-parameters
@@ -14,11 +14,11 @@
   u                 = reward:10, default:0
 #+end_src
 
-#+begin_src lesim
+#+begin_src lesim :tangle test.les
   <<common-parameters>>
 
   @phase training stop: stimulus==10
-  START_TRIAL  stimulus   | response: REWARD(.5) | NO_REWARD
+  START_TRIAL  stimulus    | response: REWARD(.5) | NO_REWARD
   REWARD       reward     | START_TRIAL
   NO_REWARD    background | START_TRIAL
 

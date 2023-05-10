@@ -63,25 +63,6 @@
       vars "\n")
      "\n" body "\n")))
 
-;; This is the main function which is called to evaluate a code
-;; block.
-;;
-;; This function will evaluate the body of the source code and
-;; return the results as emacs-lisp depending on the value of the
-;; :results header argument
-;; - output means that the output to STDOUT will be captured and
-;;   returned
-;; - value means that the value of the last statement in the
-;;   source code block will be returned
-;;
-;; The most common first step in this function is the expansion of the
-;; PARAMS argument using `org-babel-process-params'.
-;;
-;; Please feel free to not implement options which aren't appropriate
-;; for your language (e.g. not all languages support interactive
-;; "session" evaluation).  Also you are free to define any new header
-;; arguments which you feel may be useful -- all header arguments
-;; specified by the user will be available in the PARAMS variable.
 (defun org-babel-execute:lesim (body params)
   "Execute a block of Lesim code with org-babel.
 This function is called by `org-babel-execute-src-block'"
@@ -92,48 +73,25 @@ This function is called by `org-babel-execute-src-block'"
          ;; either OUTPUT or VALUE which should behave as described above
          (result-type (assq :result-type processed-params))
          ;; expand the body with `org-babel-expand-body:lesim'
-         (full-body (org-babel-expand-body:lesim body params processed-params))
+         (full-body (org-babel-expand-body:lesim body
+						 params
+						 processed-params))
 	 (ob-lesim-file (make-temp-file "lesim")))
     (with-temp-file ob-lesim-file
       (insert full-body))
-    (let ((script-out (lesim-run ob-lesim-file)))
-      (if (not script-out)
-	  (lesim-error nil) ; remove error overlay
-	(let* ((line-err (nth 0 script-out))
-	       (line-txt (with-temp-buffer
-			   (insert full-body)
-			   (message "%s" line-err)
-			   (goto-char (point-min))
-			   (forward-line line-err)
-			   (buffer-substring (point)
-					     (progn (end-of-line) (point))))))
-	  (message line-txt)
-	  (re-search-backward "#\\+begin_src lesim")
-	  (search-forward line-txt)
-	  (lesim-error (list (1- (line-number-at-pos))
-			     (nth 1 script-out))))))
+    (lesim-error (lesim-run ob-lesim-file))
     (delete-file ob-lesim-file)))
 
 (defun ob-lesim-run ()
   "Save buffer to temporary file and run."
   (interactive)
-  (let ((ob-lesim-file (make-temp-file "lesim")))
+  (ob-lesim--expand-noweb)
+  (let ((ob-lesim-file (make-temp-file "lesim"))
+	(code (buffer-substring (point-min) (point-max))))
     (write-region nil nil ob-lesim-file)
-    (lesim-error (lesim-run ob-lesim-file))
-    (delete-file ob-lesim-file)))
-
-(defun ob-lesim-edit-src-exit ()
-  ""
-  (interactive)
-  (ob-lesim--collapse-noweb)
-  (org-edit-src-exit))
-
-(defun ob-lesim-edit-src-save ()
-  ""
-  (interactive)
-  (ob-lesim--collapse-noweb)
-  (org-edit-src-save)
-  (ob-lesim--expand-noweb))
+    (let ((script-out (lesim-run ob-lesim-file))))
+    (delete-file ob-lesim-file))
+  (ob-lesim--collapse-noweb))
 
 (defun ob-lesim--expand-noweb-ref (ref)
   ""
@@ -159,7 +117,7 @@ This function is called by `org-babel-execute-src-block'"
     (while (re-search-forward "<<\\(.+?\\)>>" (point-max) t)
       (let* ((ref  (match-string-no-properties 1))
 	     (beg  (match-beginning 0))
-	     (code (ob-lesim-expand-noweb ref)))
+	     (code (ob-lesim--expand-noweb-ref ref)))
 	(replace-match code)
 	(put-text-property beg (point) 'ob-lesim-noweb ref)
 	(put-text-property beg (point)
@@ -179,12 +137,8 @@ This function is called by `org-babel-execute-src-block'"
 		 (insert "<<" (prop-match-value prop) ">>")))))))
 
 (defun ob-lesim-hook ()
-  "Expand noweb references and redefine 'C-c r' to run the
-script."
-  (ob-lesim--expand-noweb)
-  (define-key lesim-mode-map (kbd "C-c r") #'ob-lesim-run)
-  (define-key org-src-mode-map (kbd "C-c '") #'ob-lesim-edit-src-exit)
-  (define-key org-src-mode-map (kbd "C-c C-s") #'ob-lesim-edit-src-save))
+  "Redefine `lesim-run-key' to run the script."
+  (define-key lesim-mode-map lesim-run-key #'ob-lesim-run))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 
