@@ -44,7 +44,11 @@
 (add-to-list 'org-babel-tangle-lang-exts '("lesim" . "les"))
 
 ;; default header arguments
-(defvar org-babel-default-header-args:lesim '((:results . "silent") (:noweb . "yes")))
+(defvar org-babel-default-header-args:lesim
+  '((:results . "value")
+    (:noweb . "yes")
+    (:exports . "none")
+    (:eval "no-export")))
 
 ;; This function expands the body of a source code block by doing things like
 ;; prepending argument definitions to the body, it should be called by the
@@ -79,19 +83,23 @@ This function is called by `org-babel-execute-src-block'"
 	 (ob-lesim-file (make-temp-file "lesim")))
     (with-temp-file ob-lesim-file
       (insert full-body))
-    (lesim-error (lesim-run ob-lesim-file))
-    (delete-file ob-lesim-file)))
+    ;; we return a message because org-babel outputs our return value
+    ;; to the minibuffer:
+    (let ((error-message (lesim-error (lesim-run ob-lesim-file))))
+      (delete-file ob-lesim-file)
+      (if error-message
+	  error-message
+	"No error") 
+      )))
 
 (defun ob-lesim-run ()
   "Save buffer to temporary file and run."
   (interactive)
-  (ob-lesim--expand-noweb)
   (let ((ob-lesim-file (make-temp-file "lesim"))
 	(code (buffer-substring (point-min) (point-max))))
     (write-region nil nil ob-lesim-file)
-    (let ((script-out (lesim-run ob-lesim-file))))
-    (delete-file ob-lesim-file))
-  (ob-lesim--collapse-noweb))
+    (lesim-error (lesim-run ob-lesim-file))
+    (delete-file ob-lesim-file)))
 
 (defun ob-lesim--expand-noweb-ref (ref)
   ""
@@ -136,9 +144,29 @@ This function is called by `org-babel-execute-src-block'"
 		 (delete-region beg end)
 		 (insert "<<" (prop-match-value prop) ">>")))))))
 
+(defun ob-lesim-edit-src-exit ()
+  ""
+  (interactive)
+  (ob-lesim--collapse-noweb)
+  (org-edit-src-exit))
+
+(defun ob-lesim-edit-src-save ()
+  ""
+  (interactive)
+  (ob-lesim--collapse-noweb)
+  (org-edit-src-save)
+  (ob-lesim--expand-noweb))
+
 (defun ob-lesim-hook ()
   "Redefine `lesim-run-key' to run the script."
-  (define-key lesim-mode-map lesim-run-key #'ob-lesim-run))
+  (define-key lesim-mode-map lesim-run-key #'ob-lesim-run)
+  ;; redefine some keys in org-src-mode-map to collapse and expand
+  ;; noweb references as needed:
+  (define-key org-src-mode-map (kbd "C-c '") #'ob-lesim-edit-src-exit)
+  (define-key org-src-mode-map (kbd "C-c C-s") #'ob-lesim-edit-src-save)
+  (define-key org-src-mode-map (kbd "C-x C-s") #'ob-lesim-edit-src-save)
+  ;; expand noweb references:
+  (ob-lesim--expand-noweb))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 
