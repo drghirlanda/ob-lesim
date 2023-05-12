@@ -157,16 +157,35 @@ This function is called by `org-babel-execute-src-block'"
   (org-edit-src-save)
   (ob-lesim--expand-noweb))
 
+(setq ob-lesim--org-src-mode-map nil)
+(setq ob-lesim--lesim-mode-map nil)
+
+(defun ob-lesim-restore-keymaps ()
+  ""
+  (interactive)
+  (when ob-lesim--org-src-mode-map
+    (setq org-src-mode-map ob-lesim--org-src-mode-map))
+  (when ob-lesim--lesim-mode-map
+    (setq org-src-mode-map ob-lesim--lesim-mode-map)))
+  
 (defun ob-lesim-hook ()
-  "Redefine `lesim-run-key' to run the script."
-  (define-key lesim-mode-map lesim-run-key #'ob-lesim-run)
-  ;; redefine some keys in org-src-mode-map to collapse and expand
-  ;; noweb references as needed:
-  (define-key org-src-mode-map (kbd "C-c '") #'ob-lesim-edit-src-exit)
-  (define-key org-src-mode-map (kbd "C-c C-s") #'ob-lesim-edit-src-save)
-  (define-key org-src-mode-map (kbd "C-x C-s") #'ob-lesim-edit-src-save)
-  ;; expand noweb references:
-  (ob-lesim--expand-noweb))
+  "Expand noweb references and redefine keys."
+  (cond
+   ((equal major-mode 'lesim-mode)
+    ;; save keymaps we redefine:
+    (setq ob-lesim--org-src-mode-map org-src-mode-map)
+    (setq ob-lesim--lesim-mode-map lesim-mode-map)
+    ;; run scripts as if this buffer were a file:
+    (define-key lesim-mode-map lesim-run-key #'ob-lesim-run)
+    ;; handle noweb references:
+    (define-key org-src-mode-map (kbd "C-c '") #'ob-lesim-edit-src-exit)
+    (define-key org-src-mode-map (kbd "C-c C-s") #'ob-lesim-edit-src-save)
+    (define-key org-src-mode-map (kbd "C-x C-s") #'ob-lesim-edit-src-save)
+    ;; expand noweb references:
+    (ob-lesim--expand-noweb))
+   ;; restore saved keymaps:
+   (t
+    (ob-lesim-restore-keymaps))))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 
