@@ -3,12 +3,9 @@
 #+options: toc:nil ':t
 #+latex_header: \usepackage[margin=1in]{geometry}
 
-* Introduction
-
 Ob-lesim supports editing and running [[https://learningsimulator.org][Learning Simulator]] scripts in
-Emacs org-mode. In short, it bridges between org-babel (org-mode's
-code execution system) and [[https://github.com/drghirlanda/lesim-mode][lesim-mode]], an Emacs major mode for
-Learning Simulator scripts.
+Emacs org-mode. It links org-babel (org-mode's code execution system)
+and [[https://github.com/drghirlanda/lesim-mode][lesim-mode]], an Emacs major mode for Learning Simulator scripts.
 
 * Installing
 
@@ -24,42 +21,50 @@ Learning Simulator scripts.
 
 Ob-lesim works mostly behind the scenes. Using Learning Simulator code
 blocks in org-mode should feel familiar:
-- Embed Learning Simulator code in org-mode buffers with:
-   #+begin_src org :eval no
-     ,#+begin_src lesim
-     ...
-     ,#+end_src
-   #+end_src
+- You can embed Learning Simulator code in org-mode files with:
+  #+begin_src org :eval no
+    ,#+begin_src lesim
+    ...
+    ,#+end_src
+  #+end_src
 - Ob-lesim defines these default header arguments:
   - ~:results value~, which is used to insert error messages from the
     Learning Simulator as ~#+RESULTS:#~.
-  - ~:exports none~, since you rarely want error messages or scripts
-    when exporting.
+  - ~:exports none~, since you rarely need to export error messages or
+    scripts.
   - ~:noweb yes~, see [[Sharing code across scripts]].
   - ~:eval no-export~ because Learning Simulator scripts can take
     quite some time to run.
-  You can override these defaults globally for an entire org file or
-  locally for each lesim code block as usual in org-mode.
+  You can override these defaults globally for an org file or locally
+  for a lesim code block with the [[https://orgmode.org/manual/Using-Header-Arguments.html][usual org-mode mechanisms]].
+- Ob-lesim supports the ~:var~ header argument to assign parameter
+  values in a script. For example, this code will set ~beta~ to 2:
+  #+begin_src org :eval no
+    ,#+begin_src lesim :var beta=2
+    ...
+    ,#+end_src
+  #+end_src
+  This is useful to run the same script with different settings,
+  especially together with [[Sharing code across scripts][noweb references]].  Behind the scenes,
+  ~:var~ values are set at the beginning of the script, and are
+  overwritten by any later assignment.
 - Other header arguments have no effect unless handled directly by
   org-mode. For example, you can use ~:tangle file.les~ to write a
   script to ~file.les~.
 - Scripts can be run as code blocks in the org-mode buffer with the
   usual ~C-c C-c~ key binding.
 - Scripts can also be run from the edit buffer, which has major mode
-  ~lesim-mode~, with the regular lesim-mode key binding (by default,
-  ~C-c C-r~).
+  ~lesim-mode~, with the lesim-mode key binding (by default, also ~C-c
+  C-c~).
 - Lesim-mode features are partly available in the org-mode buffer (for
-  example, ~TAB~ moves by field in phase blocks), and fully available
+  example, ~TAB~ and ~Shift-TAB~ to move around), and fully available
   in org-mode edit buffers.
-
-[fn:figures]  This will change when Learning Simulator supports
-saving figures without human intervention.
 
 * Sharing code across scripts
 
 Ob-lesim supports noweb references to share code across lesim code
-blocks. For example, this is how you can make sure that two different
-scripts use the same parameter values:
+blocks. For example, this is how you can ensure that two scripts use
+the same parameter values:
 
 #+begin_src org :eval no
   This is a lesim parameter block:
@@ -83,30 +88,9 @@ scripts use the same parameter values:
   ,#+end_src
 #+end_src
 
-You can also share phase blocks and other script snippets if
-useful. Thanks to awesome engineering, noweb references are
-automatically resolved when tangling, so that you end up with complete
-scripts.
-
-When editing a lesim block, any noweb references are expanded so that
-you can see the whole script and syntax checking by lesim-mode
-works. When you close the edit buffer, noweb references are collasped
-again.
+Noweb references are automatically resolved when running a code block
+or tangling it, so that you end up with complete scripts.
 
 * Bugs and planned features
 
-Bugs and planned features are tracked as [[https://github.com/drghirlanda/ob-lesim/issues][issues on Github]].
-
-* Internals
-
-These are mostly notes to myself. Ob-lesim has two ways of running
-scripts:
-
-1. Evaluate a code block in an org-mode buffer. This works by saving
-   ~full-body~ to temporary file (noweb references are expanded by
-   org-mode), then using lesim-error and lesim-run on the file.
-
-2. Evaluate an org-src edit buffer with ~C-c C-r~
-   (~lesim-mode-run-key~). This works by saving the buffer to a
-   temporary file, then using lesim-error and lesim-run.
-
+Bugs and features are tracked as [[https://github.com/drghirlanda/ob-lesim/issues][issues on Github]].

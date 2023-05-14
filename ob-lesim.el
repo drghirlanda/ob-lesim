@@ -34,9 +34,6 @@
 ;;; Code:
 
 (require 'ob)
-(require 'ob-ref)
-(require 'ob-comint)
-(require 'ob-eval)
 (require 'lesim-mode)
 
 ;; Let org-mode know about the .les file extension.
@@ -68,7 +65,6 @@ Optional argument PROCESSED-PARAMS contains already processed parameters."
       vars "\n")
      "\n" body "\n")))
 
-;; This is just a pass-through, at least for now.
 (defun org-babel-lesim-var-to-lesim (var)
   "Convert a VAR header variable to Learning Simulator syntax.
 This is just a pass-through for now; no conversions are made."
@@ -99,18 +95,7 @@ Argument PARAMS is any parameters to be expanded."
     ;; to the minibuffer, but we also need to delete the temporary file.
     (let ((error-message (lesim-error (lesim-run ob-lesim-file))))
       (delete-file ob-lesim-file)
-      (if error-message
-	  error-message
-	"No error."))))
-
-(defun ob-lesim-run ()
-  "Save buffer to temporary file and run.
-\\[lesim-run-key] in `org-mode' source edit buffers."
-  (interactive)
-  (let ((ob-lesim-file (make-temp-file "lesim")))
-    (write-region nil nil ob-lesim-file)
-    (lesim-error (lesim-run ob-lesim-file))
-    (delete-file ob-lesim-file)))
+      (or error-message "No error."))))
 
 (defun ob-lesim--expand-noweb-ref (ref)
   "Expand REF by looking for a definition in the `org-mode' file."
@@ -124,27 +109,21 @@ Argument PARAMS is any parameters to be expanded."
 	 (if (re-search-forward reg (point-max) t)
 	     (let ((org-beg (match-end 0)))
 	       (re-search-forward "#\\+end_src" (point-max))
-	       ;; -no-properties needed to make read-only later:
-	       (buffer-substring-no-properties org-beg
-					       (1- (match-beginning 0))))
+	       (buffer-substring org-beg
+				 (1- (match-beginning 0))))
 	   (user-error "Cannot find code block %s" ref)))))))
 
 (defun ob-lesim--expand-noweb ()
-  "Expand noweb references in lesim `org-mode' source edit buffers."
+  "Expand noweb references in source edit buffers."
   (save-excursion
     (goto-char (point-min))
     (while (re-search-forward "<<\\(.+?\\)>>" (point-max) t)
-      (let* ((ref  (match-string-no-properties 1))
+      (let* ((ref  (match-string 1))
 	     (beg  (match-beginning 0))
 	     (code (ob-lesim--expand-noweb-ref ref)))
 	(replace-match code)
-	;; the expanded code is marked with 'ob-lesim-noweb and
-	;; 'read-only properties so that it can be recognized exiting
-	;; from the edit buffer.
-	(put-text-property beg (point) 'ob-lesim-noweb ref)
-	(put-text-property beg (point)
-			   'read-only
-			   (format "Edit block %s instead" ref))))))
+	(put-text-property beg (point) 'ob-lesim-noweb-ref ref)
+	(put-text-property beg (point) 'ob-lesim-noweb-len (- (point) beg))))))
 
 (defun ob-lesim--collapse-noweb ()
   "Replace expanded noweb reference with their #+name:."
@@ -152,68 +131,59 @@ Argument PARAMS is any parameters to be expanded."
     (goto-char (point-min))
     ;; noweb references are recognized by the 'ob-lesim-noweb
     ;; property, whose value is their #+name:.
-    (while (let ((prop (text-property-search-forward 'ob-lesim-noweb)))
+    (while (let ((prop (text-property-search-forward 'ob-lesim-noweb-ref)))
 	     (when prop
-	       (let ((beg (prop-match-beginning prop))
-		     (end (prop-match-end prop))
-		     (inhibit-read-only t))
+	       (let* ((beg (prop-match-beginning prop))
+		      ;;		     (end (prop-match-end prop)))
+		      (end (+ beg (get-text-property beg 'ob-lesim-noweb-len))))
 		 (delete-region beg end)
 		 (insert "<<" (prop-match-value prop) ">>")))))))
 
-(defun ob-lesim-edit-src-exit ()
-  "Handle noweb references when calling `org-edit-src-exit'."
+(defun ob-lesim-run ()
+  "Save buffer to temporary file and run.
+\\[lesim-run-key] in `org-mode' source edit buffers."
   (interactive)
-  (ob-lesim--collapse-noweb)
+  (ob-lesim--expand-noweb)
+  (let ((ob-lesim-file (make-temp-file "lesim")))
+    (write-region nil nil ob-lesim-file)
+    (lesim-error (lesim-run ob-lesim-file))
+    (delete-file ob-lesim-file))
+  (ob-lesim--collapse-noweb))
+
+(defun ob-lesim-validate ()
+  "Expand noweb, validate buffer, then collapse noweb."
+  (interactive)
+  (ob-lesim--expand-noweb)
+  (lesim-validate)
+  (ob-lesim--collapse-noweb))
+
+(defun ob-lesim--unhook ()
+  "Revert keymaps to their original state."
+  (define-key lesim-mode-map [remap lesim-run-and-error] nil)
+  (define-key lesim-mode-map [remap lesim-validate] nil)
+  (define-key org-src-mode-map [remap org-edit-src-exit] nil))
+
+(defun ob-lesim-edit-src-exit ()
+  "Exit a `lesim-mode' edit buffer."
+  (interactive)
+  (ob-lesim--unhook)
   (org-edit-src-exit))
 
-(defun ob-lesim-edit-src-save ()
-  "Handle noweb references when calling `org-edit-src-save'."
+(defun ob-lesim-edit-src-abort ()
+  "Abort editing a `lesim-mode' edit buffer."
   (interactive)
-  (ob-lesim--collapse-noweb)
-  (org-edit-src-save)
-  (ob-lesim--expand-noweb))
+  (ob-lesim--unhook)
+  (org-edit-src-abort))
 
-;; Dear MELPA reviewer, to support noweb references and running
-;; Learning Simulator scripts in code blocks and source edit buffers,
-;; we need to modify the org-src keymap (and the lesim-mode keymap,
-;; but I'm the author and I'm fine with that). This is not the best
-;; and I try to be as invisible as possible. The original keymap is
-;; restored ASAP, and the modified keymap is (hopefully) in effect
-;; only in lesim source edit buffers. (I cannot use a local map before
-;; it looks like the org-src-mode keymap is set *after* the org-src
-;; hooks run.)
-
-;; Stored keymaps as we found them.
-(setq ob-lesim--org-src-mode-map nil)
-(setq ob-lesim--lesim-mode-map nil)
-
-(defun ob-lesim-restore-keymaps ()
-  "Restore the original `org-src-mode' and `lesim-mode' keymaps."
-  (interactive)
-  (when ob-lesim--org-src-mode-map
-    (setq org-src-mode-map ob-lesim--org-src-mode-map))
-  (when ob-lesim--lesim-mode-map
-    (setq org-src-mode-map ob-lesim--lesim-mode-map)))
-
-;; This hook runs
+;; This hook runs when entering an org-mode source edit buffer.  It
+;; redefines key bindings to make org-src minor mode compatible with
+;; lesim-mode, and expands noweb references
 (defun ob-lesim-hook ()
-  "Expand noweb refs and redefine keys in `lesim-mode' edit buffers."
-  (cond
-   ((equal major-mode 'lesim-mode)
-    ;; save keymaps we redefine:
-    (setq ob-lesim--org-src-mode-map org-src-mode-map)
-    (setq ob-lesim--lesim-mode-map lesim-mode-map)
-    ;; run scripts as if this buffer were a file:
-    (define-key lesim-mode-map lesim-run-key #'ob-lesim-run)
-    ;; handle noweb references:
-    (define-key org-src-mode-map (kbd "C-c '") #'ob-lesim-edit-src-exit)
-    (define-key org-src-mode-map (kbd "C-c C-s") #'ob-lesim-edit-src-save)
-    (define-key org-src-mode-map (kbd "C-x C-s") #'ob-lesim-edit-src-save)
-    ;; expand noweb references:
-    (ob-lesim--expand-noweb))
-   ;; restore saved keymaps:
-   (t
-    (ob-lesim-restore-keymaps))))
+  "Redefine keys in `lesim-mode' edit buffers."
+  (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
+  (define-key lesim-mode-map [remap lesim-validate] #'ob-lesim-validate)
+  (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
+  (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 
