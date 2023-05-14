@@ -161,7 +161,9 @@ Argument PARAMS is any parameters to be expanded."
   "Revert keymaps to their original state."
   (define-key lesim-mode-map [remap lesim-run-and-error] nil)
   (define-key lesim-mode-map [remap lesim-validate] nil)
-  (define-key org-src-mode-map [remap org-edit-src-exit] nil))
+;  (define-key org-src-mode-map [M-tab] nil)
+  (define-key org-src-mode-map [remap org-edit-src-exit] nil)
+  (define-key org-src-mode-map [remap org-edit-src-abort] nil))
 
 (defun ob-lesim-edit-src-exit ()
   "Exit a `lesim-mode' edit buffer."
@@ -182,6 +184,7 @@ Argument PARAMS is any parameters to be expanded."
   "Redefine keys in `lesim-mode' edit buffers."
   (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
   (define-key lesim-mode-map [remap lesim-validate] #'ob-lesim-validate)
+  (define-key org-src-mode-map [M-tab] #'lesim-backward-word)
   (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
   (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort))
 
