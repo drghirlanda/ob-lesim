@@ -150,18 +150,24 @@ Argument PARAMS is any parameters to be expanded."
     (delete-file ob-lesim-file))
   (ob-lesim--collapse-noweb))
 
-(defun ob-lesim-validate ()
-  "Expand noweb, validate buffer, then collapse noweb."
+(defun ob-lesim-forward-word ()
+  "Expand noweb, move forward, then collapse noweb."
   (interactive)
   (ob-lesim--expand-noweb)
-  (lesim-validate)
+  (lesim-forward-word)
+  (ob-lesim--collapse-noweb))
+
+(defun ob-lesim-backward-word ()
+  "Expand noweb, move backward, then collapse noweb."
+  (interactive)
+  (ob-lesim--expand-noweb)
+  (lesim-backward-word)
   (ob-lesim--collapse-noweb))
 
 (defun ob-lesim--unhook ()
   "Revert keymaps to their original state."
   (define-key lesim-mode-map [remap lesim-run-and-error] nil)
-  (define-key lesim-mode-map [remap lesim-validate] nil)
-;  (define-key org-src-mode-map [M-tab] nil)
+  (define-key lesim-mode-map [remap lesim-backward-word] nil)
   (define-key org-src-mode-map [remap org-edit-src-exit] nil)
   (define-key org-src-mode-map [remap org-edit-src-abort] nil))
 
@@ -182,11 +188,11 @@ Argument PARAMS is any parameters to be expanded."
 ;; lesim-mode, and expands noweb references
 (defun ob-lesim-hook ()
   "Redefine keys in `lesim-mode' edit buffers."
-  (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
-  (define-key lesim-mode-map [remap lesim-validate] #'ob-lesim-validate)
-  (define-key org-src-mode-map [M-tab] #'lesim-backward-word)
   (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
-  (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort))
+  (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort)
+  (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
+  (define-key lesim-mode-map [remap lesim-backward-word] #'ob-lesim-backward-word)
+  (setq-local indent-line-function #'ob-lesim-forward-word))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 

@@ -1,4 +1,4 @@
-#+title: Ob-lesim: Learning Simulator integration for Org-Mode
+#+title: Ob-lesim: Learning Simulator integration for org-Mode
 #+author: Stefano Ghirlanda
 #+options: toc:nil ':t
 #+latex_header: \usepackage[margin=1in]{geometry}
@@ -58,7 +58,7 @@ blocks in org-mode should feel familiar:
   C-c~).
 - Lesim-mode features are partly available in the org-mode buffer (for
   example, ~TAB~ and ~Shift-TAB~ to move around), and fully available
-  in org-mode edit buffers.
+  in org-mode edit buffers (for example, validation).
 
 * Sharing code across scripts
 
