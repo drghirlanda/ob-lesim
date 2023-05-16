@@ -24,7 +24,7 @@
 
 ;;; Commentary:
 
-;; Add support for Learning Simulator scripts in org-mode.
+;; Support Learning Simulator code blocks in org-mode.
 
 ;;; Requirements:
 
@@ -41,10 +41,10 @@
 
 ;; Set default header arguments.
 (defvar org-babel-default-header-args:lesim
-  '((:results . "value")
-    (:noweb . "yes")
-    (:exports . "none")
-    (:eval "no-export"))
+  '((:results . "value")  ; used to show error / no error
+    (:noweb . "yes")      ; used for code sharing
+    (:exports . "none")   ; rarely useful
+    (:eval "no-export"))  ; running scripts can take time
   "Default header arguments for lesim code blocks.")
 
 ;; This function expands the body of a source code block by doing things like
@@ -123,6 +123,7 @@ Argument PARAMS is any parameters to be expanded."
 	     (code (ob-lesim--expand-noweb-ref ref)))
 	(replace-match code)
 	(put-text-property beg (point) 'ob-lesim-noweb-ref ref)
+	;; tracking length seems sturdier than relying on props:
 	(put-text-property beg (point) 'ob-lesim-noweb-len (- (point) beg))))))
 
 (defun ob-lesim--collapse-noweb ()
@@ -134,14 +135,15 @@ Argument PARAMS is any parameters to be expanded."
     (while (let ((prop (text-property-search-forward 'ob-lesim-noweb-ref)))
 	     (when prop
 	       (let* ((beg (prop-match-beginning prop))
-		      ;;		     (end (prop-match-end prop)))
+		      ;; tracking length seems sturdier relying on props:
 		      (end (+ beg (get-text-property beg 'ob-lesim-noweb-len))))
 		 (delete-region beg end)
 		 (insert "<<" (prop-match-value prop) ">>")))))))
 
 (defun ob-lesim-run ()
   "Save buffer to temporary file and run.
-\\[lesim-run-key] in `org-mode' source edit buffers."
+
+This function is bound to \\[lesim-run-key] in `org-mode' source edit buffers."
   (interactive)
   (ob-lesim--expand-noweb)
   (let ((ob-lesim-file (make-temp-file "lesim")))
@@ -185,7 +187,8 @@ Argument PARAMS is any parameters to be expanded."
 
 ;; This hook runs when entering an org-mode source edit buffer.  It
 ;; redefines key bindings to make org-src minor mode compatible with
-;; lesim-mode, and expands noweb references
+;; lesim-mode and lesim-mode work properly even if the buffer has
+;; noweb references and no associated file.
 (defun ob-lesim-hook ()
   "Redefine keys in `lesim-mode' edit buffers."
   (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
