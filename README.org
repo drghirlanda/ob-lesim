@@ -2,6 +2,7 @@
 #+author: Stefano Ghirlanda
 #+options: toc:nil ':t
 #+latex_header: \usepackage[margin=1in]{geometry}
+#+latex_header: \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 
 Ob-lesim supports editing and running [[https://learningsimulator.org][Learning Simulator]] scripts in
 Emacs org-mode. It links org-babel (org-mode's code execution system)
@@ -10,8 +11,8 @@ and [[https://github.com/drghirlanda/lesim-mode][lesim-mode]], an Emacs major mo
 * Installing
 
 1. Install [[https://github.com/drghirlanda/lesim-mode][lesim-mode]].
-2. Put ~ob-lesim.el~ in your Emacs load path, for example, ~~./emacs.d/elisp~.
-3. Add this to your Emacs init file, for example, ~~./emacs.d/init.el~:
+2. Open ~ob-lesim.el~ and execute ~M-x package-install-from-buffer~.
+3. Add this to your Emacs init file (most often, ~~./emacs.d/init.el~):
    #+begin_src elisp :eval no
      (require 'ob-lesim)
      (add-to-list 'org-babel-load-languages '(lesim . t))
@@ -30,10 +31,10 @@ blocks in org-mode should feel familiar:
 - Ob-lesim defines these default header arguments:
   - ~:results value~, which is used to insert error messages from the
     Learning Simulator as ~#+RESULTS:#~.
-  - ~:exports none~, since you rarely need to export error messages or
-    scripts.
+  - ~:exports none~, because you rarely need to export error messages
+    or scripts.
   - ~:noweb yes~, see [[Sharing code across scripts]].
-  - ~:eval no-export~ because Learning Simulator scripts can take
+  - ~:eval no-export~, because Learning Simulator scripts can take
     quite some time to run.
   You can override these defaults globally for an org file or locally
   for a lesim code block with the [[https://orgmode.org/manual/Using-Header-Arguments.html][usual org-mode mechanisms]].
@@ -56,10 +57,13 @@ blocks in org-mode should feel familiar:
 - Scripts can also be run from the edit buffer, which has major mode
   ~lesim-mode~, with the lesim-mode key binding (by default, also ~C-c
   C-c~).
-- Lesim-mode features are partly available in the org-mode buffer (for
-  example, ~TAB~ and ~Shift-TAB~ to move around), and fully available
-  in org-mode edit buffers (for example, validation).
-
+- Lesim-mode features like validation and movement by field are
+  available in the org-mode buffer and in org-mode source edit buffers
+  opened as usual with ~C-c '~ . Note, however, that moving back by
+  field with ~S-TAB~ does not work because org-mode uses this
+  keybinding for visibility cycling (hiding and showing heading
+  content). To move back by field, you can use ~M-b~ or ~M-left~.
+  
 * Sharing code across scripts
 
 Ob-lesim supports noweb references to share code across lesim code

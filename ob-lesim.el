@@ -152,24 +152,9 @@ This function is bound to \\[lesim-run-key] in `org-mode' source edit buffers."
     (delete-file ob-lesim-file))
   (ob-lesim--collapse-noweb))
 
-(defun ob-lesim-forward-word ()
-  "Expand noweb, move forward, then collapse noweb."
-  (interactive)
-  (ob-lesim--expand-noweb)
-  (lesim-forward-word)
-  (ob-lesim--collapse-noweb))
-
-(defun ob-lesim-backward-word ()
-  "Expand noweb, move backward, then collapse noweb."
-  (interactive)
-  (ob-lesim--expand-noweb)
-  (lesim-backward-word)
-  (ob-lesim--collapse-noweb))
-
 (defun ob-lesim--unhook ()
   "Revert keymaps to their original state."
   (define-key lesim-mode-map [remap lesim-run-and-error] nil)
-  (define-key lesim-mode-map [remap lesim-backward-word] nil)
   (define-key org-src-mode-map [remap org-edit-src-exit] nil)
   (define-key org-src-mode-map [remap org-edit-src-abort] nil))
 
@@ -194,8 +179,10 @@ This function is bound to \\[lesim-run-key] in `org-mode' source edit buffers."
   (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
   (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort)
   (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
-  (define-key lesim-mode-map [remap lesim-backward-word] #'ob-lesim-backward-word)
-  (setq-local indent-line-function #'ob-lesim-forward-word))
+  (ob-lesim--expand-noweb)
+  (setq-local lesim--stimuli (lesim--value-of "stimulus_elements"))
+  (setq-local lesim--behaviors (lesim--value-of "behaviors"))
+  (ob-lesim--collapse-noweb))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 
