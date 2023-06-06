@@ -3,6 +3,7 @@
 #+options: toc:nil ':t
 #+latex_header: \usepackage[margin=1in]{geometry}
 #+latex_header: \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+#+latex_header: \setlength{\parindent}{0pt} \setlength{\parskip}{1ex}
 
 Ob-lesim supports editing and running [[https://learningsimulator.org][Learning Simulator]] scripts in
 Emacs org-mode. It links org-babel (org-mode's code execution system)
@@ -55,14 +56,14 @@ blocks in org-mode should feel familiar:
 - Scripts can be run as code blocks in the org-mode buffer with the
   usual ~C-c C-c~ key binding.
 - Scripts can also be run from the edit buffer, which has major mode
-  ~lesim-mode~, with the lesim-mode key binding (by default, also ~C-c
-  C-c~).
+  ~lesim-mode~, with the lesim-mode key binding (by default, also ~C-c C-c~).
 - Lesim-mode features like validation and movement by field are
   available in the org-mode buffer and in org-mode source edit buffers
-  opened as usual with ~C-c '~ . Note, however, that moving back by
-  field with ~S-TAB~ does not work because org-mode uses this
-  keybinding for visibility cycling (hiding and showing heading
-  content). To move back by field, you can use ~M-b~ or ~M-left~.
+  opened as usual with ~C-c '~.
+- Note, however, that moving back by field with ~S-TAB~ does not work
+  because org-mode uses this keybinding for visibility cycling (hiding
+  and showing heading content). To move back by field, you can use
+  ~M-b~ or ~M-left~.
   
 * Sharing code across scripts
 
@@ -84,7 +85,7 @@ the same parameter values:
     # script 1 here here
   ,#+end_src
 
-  Ths is script 2:
+  This is script 2:
   ,#+begin_src lesim
     <<common-parameters>>
 
