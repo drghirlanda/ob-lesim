@@ -3,7 +3,7 @@
 ;; Copyright (C) 2023 Stefano Ghirlanda
 
 ;; Author: Stefano Ghirlanda <drghirlanda@gmail.com>
-;; Package-Requires: ((emacs "28.1") (org "9.3") (lesim-mode "0.1"))
+;; Package-Requires: ((emacs "28.1") (org "9.3") (lesim-mode "0.2"))
 ;; URL: https://github.com/drghirlanda/ob-lesim
 ;; Keywords: languages, tools
 ;; Version: 0.1
