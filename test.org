@@ -6,23 +6,29 @@
   start_v           = 0
   start_w           = 0
   alpha_v           = 0.1
+  beta              = 1
   u                 = reward:10, default:0
 #+end_src
 
 #+RESULTS: common-parameters
-: No error
+: No error.
 
-#+begin_src lesim :tangle test.les :var n_subjects=10
+#+name: title
+#+begin_src lesim
+My Figure
+#+end_src
+
+#+begin_src lesim :tangle test.les :var n_subjects=1
   <<common-parameters>>
 
   @phase training stop: stimulus==100  
-  START_TRIAL  stimulus         | response: REWARD(.5) | NO_REWARD
+  START_TRIAL  stimulus            | response: REWARD(.75) | NO_REWARD
   REWARD       stimulus, reward | START_TRIAL
-  NO_REWARD    background       | START_TRIAL
+  NO_REWARD    background          | START_TRIAL
 
   @run training
 
-  @figure v(stimulus->response)
+  @figure My Figure
   @subplot 111 {'xlabel':'exposures to stimulus', 'ylabel':'v-value'}
   @vplot stimulus->response
 #+end_src 
