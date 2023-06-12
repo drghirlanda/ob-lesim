@@ -78,7 +78,7 @@ This is just a pass-through for now; no conversions are made."
 This function is called by `org-babel-execute-src-block'
 Argument BODY is the code.
 Argument PARAMS is any parameters to be expanded."
-  ;; note to self: the commented-out variables below are from the
+  ;; note from Stefano: the commented-out variables below are from the
   ;; org-babel template. they can be useful in the future as more
   ;; features are added.
   (let* ((processed-params (org-babel-process-params params))
@@ -95,7 +95,7 @@ Argument PARAMS is any parameters to be expanded."
     (with-temp-file ob-lesim-file
       (insert full-body))
     ;; We return a message because org-babel outputs our return value
-    ;; to the minibuffer, but we also need to delete the temporary file.
+    ;; to the minibuffer. We also delete the temporary file.
     (let ((error-message (lesim-error (lesim-run ob-lesim-file))))
       (delete-file ob-lesim-file)
       (or error-message "No error."))))
@@ -178,14 +178,21 @@ This function is bound to \\[lesim-run-key] in `org-mode' source edit buffers."
 ;; lesim-mode and lesim-mode work properly even if the buffer has
 ;; noweb references and no associated file.
 (defun ob-lesim-hook ()
-  "Redefine keys in `lesim-mode' edit buffers."
-  (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
-  (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort)
-  (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
-  (ob-lesim--expand-noweb)
-  (setq-local lesim--stimuli (lesim--value-of "stimulus_elements"))
-  (setq-local lesim--behaviors (lesim--value-of "behaviors"))
-  (ob-lesim--collapse-noweb))
+  "Enable validating and runing Learning Simulator scripts.
+This hook is added to `org-src-mode-hook' in order to: 1) make
+`lesim-mode' aware of code from noweb references, which is
+necessary for script validation; 2) create a temporary script
+file when the user runs a script from the org-mode or org-src
+buffer; 3) clean up when exiting org-src buffers. This hook only
+runs when the major mode is `lesim-mode'."
+  (when (eq major-mode 'lesim-mode)
+    (define-key org-src-mode-map [remap org-src-exit] #'ob-lesim-edit-src-exit)
+    (define-key org-src-mode-map [remap org-src-abort] #'ob-lesim-edit-src-abort)
+    (define-key lesim-mode-map [remap lesim-run-and-error] #'ob-lesim-run)
+    (ob-lesim--expand-noweb)
+    (setq-local lesim--stimuli (lesim--value-of "stimulus_elements"))
+    (setq-local lesim--behaviors (lesim--value-of "behaviors"))
+    (ob-lesim--collapse-noweb)))
 
 (add-hook 'org-src-mode-hook #'ob-lesim-hook)
 
