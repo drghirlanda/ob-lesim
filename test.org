@@ -18,16 +18,17 @@
 My Figure
 #+end_src
 
-#+begin_src lesim :tangle test.les :var n_subjects=1
+#+begin_src lesim :tangle test.les :var n_subjects=1000
   <<common-parameters>>
 
-  @phase training stop: stimulus==100  
-  START_TRIAL  stimulus            | response: REWARD(.75) | NO_REWARD
+  @phase training stop: REWARD==100  
+  START_TRIAL  stimulus         | response: REWARD(.75) | NO_REWARD
   REWARD       stimulus, reward | START_TRIAL
-  NO_REWARD    background          | START_TRIAL
+  NO_REWARD    background       | START_TRIAL
 
   @run training
 
+  xscale: REWARD 
   @figure My Figure
   @subplot 111 {'xlabel':'exposures to stimulus', 'ylabel':'v-value'}
   @vplot stimulus->response

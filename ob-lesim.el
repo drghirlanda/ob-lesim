@@ -3,10 +3,10 @@
 ;; Copyright (C) 2023 Stefano Ghirlanda
 
 ;; Author: Stefano Ghirlanda <drghirlanda@gmail.com>
-;; Package-Requires: ((emacs "28.1") (org "9.3") (lesim-mode "0.2"))
+;; Package-Requires: ((emacs "28.1") (org "9.3") (lesim-mode "0.3.3"))
 ;; URL: https://github.com/drghirlanda/ob-lesim
 ;; Keywords: languages, tools
-;; Version: 0.1
+;; Version: 0.2
 
 ;; This program is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -78,17 +78,20 @@ This is just a pass-through for now; no conversions are made."
 This function is called by `org-babel-execute-src-block'
 Argument BODY is the code.
 Argument PARAMS is any parameters to be expanded."
+  ;; note to self: the commented-out variables below are from the
+  ;; org-babel template. they can be useful in the future as more
+  ;; features are added.
   (let* ((processed-params (org-babel-process-params params))
          ;; variables assigned for use in the block
-         (vars (org-babel--get-vars processed-params))
-         (result-params (assq :result-params processed-params))
+         ;; (vars (org-babel--get-vars processed-params))
+         ;; (result-params (assq :result-params processed-params))
          ;; either OUTPUT or VALUE which should behave as described above
-         (result-type (assq :result-type processed-params))
+         ;; (result-type (assq :result-type processed-params))
          ;; expand the body with `org-babel-expand-body:lesim'
          (full-body (org-babel-expand-body:lesim body
-						 params
-						 processed-params))
-	 (ob-lesim-file (make-temp-file "lesim")))
+                                                 params
+                                                 processed-params))
+         (ob-lesim-file (make-temp-file "lesim")))
     (with-temp-file ob-lesim-file
       (insert full-body))
     ;; We return a message because org-babel outputs our return value
@@ -104,14 +107,14 @@ Argument PARAMS is any parameters to be expanded."
       (org-src-do-at-code-block
        (goto-char (point-min))
        (let ((reg  (concat "#\\+name:\\s-+"
-			   ref
-			   "\\s-*\n#\\+begin_src lesim\\s-*\n")))
-	 (if (re-search-forward reg (point-max) t)
-	     (let ((org-beg (match-end 0)))
-	       (re-search-forward "#\\+end_src" (point-max))
-	       (buffer-substring org-beg
-				 (1- (match-beginning 0))))
-	   (user-error "Cannot find code block %s" ref)))))))
+                           ref
+                           "\\s-*\n#\\+begin_src lesim\\s-*\n")))
+         (if (re-search-forward reg (point-max) t)
+             (let ((org-beg (match-end 0)))
+               (re-search-forward "#\\+end_src" (point-max))
+               (buffer-substring org-beg
+                                 (1- (match-beginning 0))))
+           (user-error "Cannot find code block %s" ref)))))))
 
 (defun ob-lesim--expand-noweb ()
   "Expand noweb references in source edit buffers."
@@ -119,12 +122,12 @@ Argument PARAMS is any parameters to be expanded."
     (goto-char (point-min))
     (while (re-search-forward "<<\\(.+?\\)>>" (point-max) t)
       (let* ((ref  (match-string 1))
-	     (beg  (match-beginning 0))
-	     (code (ob-lesim--expand-noweb-ref ref)))
-	(replace-match code)
-	(put-text-property beg (point) 'ob-lesim-noweb-ref ref)
-	;; tracking length seems sturdier than relying on props:
-	(put-text-property beg (point) 'ob-lesim-noweb-len (- (point) beg))))))
+             (beg  (match-beginning 0))
+             (code (ob-lesim--expand-noweb-ref ref)))
+        (replace-match code)
+        (put-text-property beg (point) 'ob-lesim-noweb-ref ref)
+        ;; tracking length seems sturdier than relying on props:
+        (put-text-property beg (point) 'ob-lesim-noweb-len (- (point) beg))))))
 
 (defun ob-lesim--collapse-noweb ()
   "Replace expanded noweb reference with their #+name:."
@@ -133,12 +136,12 @@ Argument PARAMS is any parameters to be expanded."
     ;; noweb references are recognized by the 'ob-lesim-noweb
     ;; property, whose value is their #+name:.
     (while (let ((prop (text-property-search-forward 'ob-lesim-noweb-ref)))
-	     (when prop
-	       (let* ((beg (prop-match-beginning prop))
-		      ;; tracking length seems sturdier relying on props:
-		      (end (+ beg (get-text-property beg 'ob-lesim-noweb-len))))
-		 (delete-region beg end)
-		 (insert "<<" (prop-match-value prop) ">>")))))))
+             (when prop
+               (let* ((beg (prop-match-beginning prop))
+                      ;; tracking length seems sturdier relying on props:
+                      (end (+ beg (get-text-property beg 'ob-lesim-noweb-len))))
+                 (delete-region beg end)
+                 (insert "<<" (prop-match-value prop) ">>")))))))
 
 (defun ob-lesim-run ()
   "Save buffer to temporary file and run.
