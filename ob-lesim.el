@@ -35,6 +35,7 @@
 
 (require 'ob)
 (require 'lesim-mode)
+(require 'text-property-search)
 
 ;; Let org-mode know about the .les file extension.
 (add-to-list 'org-babel-tangle-lang-exts '("lesim" . "les"))
