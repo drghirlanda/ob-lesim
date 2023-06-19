@@ -56,7 +56,6 @@
 (defun org-babel-expand-body:lesim (body params &optional processed-params)
   "Expand BODY according to PARAMS, return the expanded body.
 Optional argument PROCESSED-PARAMS contains already processed parameters."
-  (require 'inf-lesim nil t)
   (let ((vars (org-babel--get-vars (or processed-params (org-babel-process-params params)))))
     (concat
      (mapconcat ;; define any variables
